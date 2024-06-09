@@ -3,9 +3,11 @@ from __future__ import annotations
 from typing import Callable
 from chem_nlp.sentenzisers import sentenzise
 from chem_nlp.tokenizers import tokenize
+from chem_nlp.data.loaders import load_json
 import nltk
 import logging
 from typing import Union
+from dataclasses import dataclass
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -14,11 +16,23 @@ nltk.download("averaged_perceptron_tagger")
 nltk.download("punkt")
 
 
-class Doc:
+@dataclass
+class Settings:
+    sentenziser: Callable = sentenzise.new_lines
+    initial_tokenizer: Callable = nltk.word_tokenize
+    tokenize_compounds: bool = True
+    tokenize_foods: bool = False
+    targets_per_sentence: int = 1
+    max_sequence: int = 3
 
-    def __init__(self, text: str, sentenizer: Callable = sentenzise.new_lines):
+
+class ChemDoc:
+
+    def __init__(self, text: str, settings: Settings):
         self.text = text
-        self.sentenizer = sentenizer
+        self.settings = settings
+        self.vocab = self.load_vocab()
+        self.sentenizer = settings.sentenziser
         self.sentences = self.sentenize()
 
     def sentenize(self) -> list[Sentence]:
@@ -28,13 +42,40 @@ class Doc:
 
         return sentences
 
+    def load_vocab(self):
+
+        vocab = []
+
+        if self.settings.tokenize_compounds:
+            vocab += load_json(
+                filename="compounds.json",
+                folder="chem_nlp/data/compounds",
+                keys_to_keep=["name"],
+                only_values=True,
+                ignore={"name": ["mg", "g"]},
+                ignore_contains={"name": ["^[A-Za-z]+\(.*"]},
+            )
+
+            vocab += load_json(
+                filename="synonyms.json",
+                folder="chem_nlp/data/compounds",
+                keys_to_keep=["synonym"],
+                only_values=True,
+                ignore_contains={"synonym": ["^[A-Za-z]+\(.*"]},
+            )
+
+        if self.settings.tokenize_foods:
+            raise Exception("Not implemented yet")
+
+        return list(set(vocab))
+
 
 class Sentence:
 
-    def __init__(self, doc: Doc, sent: str):
+    def __init__(self, doc: ChemDoc, sent: str):
         self.doc = doc
         self.sent = sent
-        self.initial_tokens = nltk.word_tokenize(sent)
+        self.initial_tokens = doc.settings.initial_tokenizer(sent)
         self.pos_tags = self.set_pos_tags(self.initial_tokens)
         self.tokens = self.tokenize()
 
@@ -56,11 +97,16 @@ class Sentence:
         return pos_tags
 
     def tokenize(self) -> list[Token]:
-        # tokens = []
-        phrase_matches = tokenize.by_phrase_match(
-            tokens=(self.initial_tokens), vocab=["vitamin a", "vitamin b", "calcium"]
-        )
+        tokens = []
+        for token in tokenize.by_phrase_match(
+            tokens=(self.initial_tokens),
+            vocab=self.doc.vocab,
+            max_match=self.doc.settings.targets_per_sentence,
+            max_sequence=self.doc.settings.max_sequence,
+        ):
+            tokens.append(Token(sentence=self, char=token))
 
+        return tokens
         # logging.info(phrase_matches)
 
         """

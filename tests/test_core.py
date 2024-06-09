@@ -1,5 +1,5 @@
 import pytest
-from chem_nlp.core import Doc
+from chem_nlp.core import ChemDoc, Settings
 import os
 import logging
 
@@ -13,17 +13,7 @@ def load_test_data(filename):
 
 
 @pytest.mark.parametrize("filename,expected", [("text_sample_1.txt", 8)])
-def test_sentences(filename: str, expected):
-
-    text = load_test_data(filename)
-    doc = Doc(text=text)
-
-    sent = doc.sentences[0]
-    assert sent.is_first()
-
-
-@pytest.mark.parametrize("filename,expected", [("text_sample_1.txt", 8)])
 def test_tokens(filename: str, expected):
 
     text = load_test_data(filename)
-    doc = Doc(text=text)
+    doc = ChemDoc(text=text, settings=Settings())

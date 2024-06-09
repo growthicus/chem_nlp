@@ -1,72 +1,56 @@
 import Levenshtein as lev
 import logging
-from nltk.util import trigrams
+from nltk.util import bigrams, trigrams
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-def filter_unique_n_gram(matches: list[dict]):
-    # Dictionary to store the best (lowest lvd) entries for each unique n_gram
-    n_gram_dict = {}
+def find_tokens_by_sequence(
+    tokens: list[str], vocab: list[str], max_sequence: int, max_match: int
+) -> list[str]:
 
-    for item in matches:
-        n_gram_key = item[
-            "n_gram"
-        ].lower()  # Normalize the n_gram for case-insensitive comparison
-        # Check if we already have this n_gram and if the current lvd is lower than the stored one
-        if (
-            n_gram_key not in n_gram_dict
-            or item["lvd"] < n_gram_dict[n_gram_key]["lvd"]
-        ):
-            n_gram_dict[n_gram_key] = item
+    if max_sequence == 2:
+        gramify = bigrams
+    elif max_sequence == 3:
+        gramify = trigrams
 
-    # Return the filtered list of dictionaries
-    return list(n_gram_dict.values())
-
-
-def find_tokens_by_trigram(tokens: list[str], vocab: list[str], lvt=1) -> list[str]:
     matches = []
-    for i, trigram in enumerate(list(trigrams(tokens))):
-        # logging.info(f"TRIGRAM: {trigram}")
-        trigram_matches = []
-        for i in range(len(trigram)):
-            for j in range(i + 1, len(trigram) + 1):
-                n_gram = " ".join(trigram[i:j])
-                for word in vocab:
-                    lvd = lev.distance(n_gram.lower(), word)
-                    if lvd <= lvt:
-                        trigram_matches.append(
-                            {"n_gram": n_gram, "lvd": lvd, "new": word}
-                        )
+    for i, x_gram in enumerate(list(gramify(tokens))):
+        for i in range(len(x_gram)):
+            for j in range(i + 1, len(x_gram) + 1):
+                n_gram = " ".join(x_gram[i:j]).lower()
+                if n_gram in vocab:
+                    matches.append(n_gram)
+                    if len(matches) == max_match and len(x_gram) == max_sequence:
+                        return matches
 
-        if trigram_matches:
-            matches.append(sorted(trigram_matches, key=lambda x: x["lvd"])[0])
-
-    return filter_unique_n_gram(matches)
+    return matches
 
 
-def by_phrase_match(tokens: list[str], vocab: list[str]) -> list[str]:
-    matches = find_tokens_by_trigram(tokens=tokens, vocab=vocab)
-    sorted_matches = sorted(matches, key=lambda x: x["lvd"])
-    logging.error(sorted_matches)
+def by_phrase_match(
+    tokens: list[str], vocab: list[str], max_sequence: int = 3, max_match: int = 1
+) -> list[str]:
+    l_tokens = [t.lower() for t in tokens]
+    matches = find_tokens_by_sequence(
+        tokens=l_tokens, vocab=vocab, max_sequence=max_sequence, max_match=max_match
+    )
 
-    for merge_dict in sorted_matches:
-        n_gram = merge_dict["n_gram"]
-        new_value = merge_dict["new"]
-        words_to_merge = n_gram.split()
+    for match in sorted(matches, key=len):
+        words_to_merge = match.split()
         length = len(words_to_merge)
 
         # Find the starting tokens of the sequence in the list
-        for i in range(len(tokens) - length + 1):
+        for i in range(len(l_tokens) - length + 1):
+            logging
             # Check if the subsequent elements in the list match the words to merge
-            if tokens[i : i + length] == words_to_merge:
+            if l_tokens[i : i + length] == words_to_merge:
                 # Replace the specific range with the new_value
-                tokens[i : i + length] = [new_value]
+                l_tokens[i : i + length] = [match]
                 # Continue to next merge_dict without breaking to allow further replacements
                 continue
 
-    logging.info(tokens)
-    return tokens
+    logging.debug(l_tokens)
+    return l_tokens
 
 
 """                 90              100                 75
