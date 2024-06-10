@@ -11,20 +11,13 @@ def filter_data(data: list[Dict], filter_rules: Dict[str, List[str]]):
 
     filtered_data = []
 
-    # Iterate through each dictionary in the data list
     for item in data:
-        # Create a new dictionary to store the filtered items
-        filtered_item = {}
-
-        # Check each key-value pair in the dictionary
-        for key, value in item.items():
-            # If the key is in the filter rules and the value is not in the forbidden list, add it to the filtered dictionary
-            if key not in filter_rules or value not in filter_rules[key]:
-                filtered_item[key] = value
-
-        # Add the filtered dictionary to the filtered data list
-        filtered_data.append(filtered_item)
-
+        for filter_key, filters in filter_rules.items():
+            try:
+                if item[filter_key] not in filters:
+                    filtered_data.append(item)
+            except KeyError:
+                raise KeyError(f"Cannot find key {filter_key} in {item}")
     return filtered_data
 
 
@@ -64,7 +57,7 @@ def load_json(
     folder: str,
     keys_to_keep: List[str] = None,
     only_values: bool = False,
-    lower: bool = True,
+    to_lower: bool = False,
     ignore: Union[Dict[str, List[str]], None] = None,
     ignore_contains: Union[Dict[str, List[str]], None] = None,
 ):
@@ -88,7 +81,7 @@ def load_json(
             {key: item[key] for key in keys_to_keep if key in item} for item in data
         ]
 
-    if lower:
+    if to_lower:
         data = [
             {k: v.lower() if isinstance(v, str) else v for k, v in item.items()}
             for item in data

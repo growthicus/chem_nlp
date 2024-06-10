@@ -1,12 +1,16 @@
-import Levenshtein as lev
+from __future__ import annotations
 import logging
 from nltk.util import bigrams, trigrams
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-def find_tokens_by_sequence(
-    tokens: list[str], vocab: list[str], max_sequence: int, max_match: int
+def match_char_sequence(
+    char_tokens: list[str],
+    vocab: list[str],
+    max_sequence: int,
+    max_match: int,
+    min_n_gram_len: int,
 ) -> list[str]:
 
     if max_sequence == 2:
@@ -15,11 +19,12 @@ def find_tokens_by_sequence(
         gramify = trigrams
 
     matches = []
-    for i, x_gram in enumerate(list(gramify(tokens))):
+    for i, x_gram in enumerate(list(gramify(char_tokens))):
         for i in range(len(x_gram)):
             for j in range(i + 1, len(x_gram) + 1):
-                n_gram = " ".join(x_gram[i:j]).lower()
-                if n_gram in vocab:
+
+                n_gram = " ".join(x_gram[i:j])
+                if n_gram in vocab and len(n_gram) >= min_n_gram_len:
                     matches.append(n_gram)
                     if len(matches) == max_match and len(x_gram) == max_sequence:
                         return matches
@@ -27,12 +32,24 @@ def find_tokens_by_sequence(
     return matches
 
 
-def by_phrase_match(
-    tokens: list[str], vocab: list[str], max_sequence: int = 3, max_match: int = 1
+def by_char_sqequence(
+    char_tokens: list[str],
+    vocab: list[str],
+    max_sequence: int = 3,
+    max_match: int = 1,
+    ignore_case: bool = True,
+    min_n_gram_len: int = 3,
 ) -> list[str]:
-    l_tokens = [t.lower() for t in tokens]
-    matches = find_tokens_by_sequence(
-        tokens=l_tokens, vocab=vocab, max_sequence=max_sequence, max_match=max_match
+
+    if ignore_case:
+        char_tokens = [token.lower() for token in char_tokens]
+
+    matches = match_char_sequence(
+        char_tokens=char_tokens,
+        vocab=vocab,
+        max_sequence=max_sequence,
+        max_match=max_match,
+        min_n_gram_len=min_n_gram_len,
     )
 
     for match in sorted(matches, key=len):
@@ -40,35 +57,12 @@ def by_phrase_match(
         length = len(words_to_merge)
 
         # Find the starting tokens of the sequence in the list
-        for i in range(len(l_tokens) - length + 1):
-            logging
+        for i in range(len(char_tokens) - length + 1):
             # Check if the subsequent elements in the list match the words to merge
-            if l_tokens[i : i + length] == words_to_merge:
+            if char_tokens[i : i + length] == words_to_merge:
                 # Replace the specific range with the new_value
-                l_tokens[i : i + length] = [match]
+                char_tokens[i : i + length] = [match]
                 # Continue to next merge_dict without breaking to allow further replacements
                 continue
 
-    logging.debug(l_tokens)
-    return l_tokens
-
-
-"""                 90              100                 75
-global_matches = [i really enjoy, really enjoy, enjoy taking vitamin]
-('I', 'really', 'enjoy')
-    i 70
-    i really 75
-    i really enjoy 90
-('really', 'enjoy', 'taking')
-    really 60
-    really enjoy 100
-    really enjoy taking 75
-('enjoy', 'taking', 'vitamin')
-    enjoy 40
-    enjoy taking 30
-    enjoy taking vitamin 80
-('taking', 'vitamin', 'a')
-('vitamin', 'a', 'every')
-('a', 'every', 'day')
-('every', 'day', '.')
-"""
+    return char_tokens
