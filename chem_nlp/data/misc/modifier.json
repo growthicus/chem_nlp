@@ -1,0 +1,86 @@
+[
+    {
+        "name": "extract"
+    },
+    {
+        "name": "powder"
+    },
+    {
+        "name": "oil"
+    },
+    {
+        "name": "juice"
+    },
+    {
+        "name": "syrup"
+    },
+    {
+        "name": "cream"
+    },
+    {
+        "name": "gel"
+    },
+    {
+        "name": "paste"
+    },
+    {
+        "name": "capsule"
+    },
+    {
+        "name": "tablet"
+    },
+    {
+        "name": "solution"
+    },
+    {
+        "name": "emulsion"
+    },
+    {
+        "name": "tincture"
+    },
+    {
+        "name": "butter"
+    },
+    {
+        "name": "tea"
+    },
+    {
+        "name": "concentrate"
+    },
+    {
+        "name": "blend"
+    },
+    {
+        "name": "mixture"
+    },
+    {
+        "name": "suspension"
+    },
+    {
+        "name": "compound"
+    },
+    {
+        "name": "essence"
+    },
+    {
+        "name": "infusion"
+    },
+    {
+        "name": "elixir"
+    },
+    {
+        "name": "resin"
+    },
+    {
+        "name": "lotion"
+    },
+    {
+        "name": "foam"
+    },
+    {
+        "name": "vapor"
+    },
+    {
+        "name": "granule"
+    }
+]

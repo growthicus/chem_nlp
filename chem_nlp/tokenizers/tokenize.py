@@ -1,11 +1,26 @@
 from __future__ import annotations
 import logging
 from nltk.util import bigrams, trigrams
+from chem_nlp.dc import Matcher
+from chem_nlp.tokenizers import vocab
+import re
 
 logging.basicConfig(level=logging.DEBUG)
 
 
-def match_char_sequence(
+TM_UNITS = Matcher(
+    name="units",
+    pattern_funcs=[
+        lambda ct: re.match(
+            rf"^([0-9]*\.?[0-9]+)\s*({'|'.join(vocab.V_UNIT_WEIGHT.load())})$",
+            ct,
+            flags=re.IGNORECASE,
+        )
+    ],
+)
+
+
+def match_word_sequence(
     char_tokens: list[str],
     vocab: list[str],
     max_sequence: int,
@@ -22,29 +37,39 @@ def match_char_sequence(
     for i, x_gram in enumerate(list(gramify(char_tokens))):
         for i in range(len(x_gram)):
             for j in range(i + 1, len(x_gram) + 1):
-
                 n_gram = " ".join(x_gram[i:j])
                 if n_gram in vocab and len(n_gram) >= min_n_gram_len:
                     matches.append(n_gram)
+                    latest_match = True
                     if len(matches) == max_match and len(x_gram) == max_sequence:
                         return matches
 
     return matches
 
 
-def by_char_sqequence(
+def split_by_char_pattern(char_token: str, patterns: list[Matcher]) -> list[str]:
+
+    char_tokens = []
+    for pattern in patterns:
+        for pattern_func in pattern.pattern_funcs:
+            match = pattern_func(char_token)
+            if match:
+                char_tokens += [match.group(1), match.group(2)]
+            else:
+                char_tokens.append(char_token)
+
+    return char_tokens
+
+
+def merge_by_word_sqequence(
     char_tokens: list[str],
     vocab: list[str],
     max_sequence: int = 3,
     max_match: int = 1,
-    ignore_case: bool = True,
     min_n_gram_len: int = 3,
 ) -> list[str]:
 
-    if ignore_case:
-        char_tokens = [token.lower() for token in char_tokens]
-
-    matches = match_char_sequence(
+    matches = match_word_sequence(
         char_tokens=char_tokens,
         vocab=vocab,
         max_sequence=max_sequence,

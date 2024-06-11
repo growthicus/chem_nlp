@@ -3,7 +3,6 @@ from chem_nlp.dc import Vocab
 
 V_COMPOUND = Vocab(
     name="compound",
-    entity="COMPOUND",
     filename="compound.json",
     folder="chem_nlp/data/compounds",
     keys_to_keep=["name"],
@@ -13,7 +12,6 @@ V_COMPOUND = Vocab(
 
 V_COMPOUND_SYNONYM = Vocab(
     name="compound_synonym",
-    entity="COMPOUND_SYN",
     filename="synonym.json",
     folder="chem_nlp/data/compounds",
     keys_to_keep=["synonym"],
@@ -25,7 +23,6 @@ V_COMPOUND_SYNONYM = Vocab(
 
 V_FOOD = Vocab(
     name="food",
-    entity="FOOD",
     filename="food.json",
     folder="chem_nlp/data/food",
     keys_to_keep=["name", "name_scientific"],
@@ -34,9 +31,16 @@ V_FOOD = Vocab(
 
 V_UNIT_WEIGHT = Vocab(
     name="weight",
-    entity="weight",
     filename="weight.json",
     folder="chem_nlp/data/units",
+    keys_to_keep=["name"],
+    only_values=True,
+)
+
+V_MODIFIER = Vocab(
+    name="modifier",
+    filename="modifier.json",
+    folder="chem_nlp/data/misc",
     keys_to_keep=["name"],
     only_values=True,
 )

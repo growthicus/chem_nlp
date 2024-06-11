@@ -11,6 +11,8 @@ logging.basicConfig(level=logging.DEBUG)
 # Download necessary NLTK data files
 nltk.download("averaged_perceptron_tagger")
 nltk.download("punkt")
+nltk.download("wordnet")
+nltk.download("omw-1.4")
 
 
 class ChemDoc:
@@ -25,16 +27,20 @@ class ChemDoc:
     def sentenize(self) -> list[ChemSentence]:
         sentences = []
         for sent in self.sentenizer(self.text):
-            sentences.append(ChemSentence(sent=sent, doc=self))
+            sentences.append(
+                ChemSentence(
+                    sent=sent.lower() if self.settings.ignore_case else sent, doc=self
+                )
+            )
 
         return sentences
 
     def load_vocab(self) -> dict:
 
         vocabs = defaultdict(list)
-        for vocab in self.settings.token_vocabs:
+        for vocab in self.settings.token_merge_vocabs:
             vocab.to_lower = self.settings.ignore_case
-            vocabs[vocab.entity] += vocab.load()
+            vocabs[vocab.name] += vocab.load()
 
         return vocabs
 
@@ -65,8 +71,11 @@ class ChemSentence:
         # the word occour more than once
         # and has differnt POS for each
         # occourence
+
         for word, pos in self.pos_tags:
             if word == token.char:
+                if token.entity in ["COMPOUND", "COMPOUND_SYN", "FOOD"]:
+                    return "NN"
                 return pos
 
     def set_pos_tags(self, tokens: list[str]):
@@ -76,15 +85,20 @@ class ChemSentence:
 
     def tokenize(self) -> list[ChemToken]:
         tokens = []
-        for token in tokenize.by_char_sqequence(
+
+        # Merges tokens into bigger grams
+        for merged_char in tokenize.merge_by_word_sqequence(
             char_tokens=(self.initial_tokens),
             vocab=self.doc.vocab_to_list(),
             max_match=self.doc.settings.targets_per_sentence,
             max_sequence=self.doc.settings.max_sequence_length,
-            ignore_case=self.doc.settings.ignore_case,
             min_n_gram_len=self.doc.settings.min_vocab_word_length,
         ):
-            tokens.append(ChemToken(doc=self.doc, sentence=self, char=token))
+            # Split tokens into smaller grams
+            for divided_char in tokenize.split_by_char_pattern(
+                char_token=merged_char, patterns=self.doc.settings.token_split_patterns
+            ):
+                tokens.append(ChemToken(doc=self.doc, sentence=self, char=divided_char))
 
         # Re init POS
         self.pos_tags = self.set_pos_tags([token.char for token in tokens])
@@ -105,10 +119,9 @@ class ChemToken:
         self.char = char
         self.entity: str = None
 
-    def get_pos(self) -> str:
+    @property
+    def pos(self):
         return self.sentence.get_pos_tag(self)
 
     def __repr__(self) -> str:
-        return (
-            f"ChemToken(char={self.char}, pos={self.get_pos()}, entity={self.entity})"
-        )
+        return f"ChemToken(char={self.char}, pos={self.pos}, entity={self.entity})"

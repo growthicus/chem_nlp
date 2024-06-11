@@ -64,7 +64,7 @@ def load_json(
     file_path = os.path.join(folder, filename)
 
     logging.info(f"loading file: {filename}")
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         data: List[Dict] = json.load(file)
 
     logging.info(f"{filename} initial rows: {len(data)}")

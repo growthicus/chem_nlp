@@ -9,7 +9,6 @@ import nltk
 @dataclass
 class Vocab:
     name: str
-    entity: str
     filename: str
     folder: str
     to_lower: bool = False
@@ -35,10 +34,10 @@ class Vocab:
 
 
 @dataclass
-class EntityMatcher:
+class Matcher:
     name: str
-    entity: str
     pattern_funcs: list[Callable]
+    entity: Union[str, None] = None
 
 
 @dataclass
@@ -46,8 +45,9 @@ class Settings:
     sentenziser: Callable = sentenzise.new_lines
     initial_tokenizer: Callable = nltk.word_tokenize
     ignore_case: bool = False
-    token_vocabs: list[Vocab] = field(default_factory=list)
-    entity_patterns: list[EntityMatcher] = field(default_factory=list)
+    token_merge_vocabs: list[Vocab] = field(default_factory=list)
+    token_split_patterns: list[Vocab] = field(default_factory=list)
+    entity_patterns: list[Matcher] = field(default_factory=list)
     targets_per_sentence: int = 1
     max_sequence_length: int = 3
     min_vocab_word_length: int = 3
