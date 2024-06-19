@@ -1,8 +1,9 @@
 from __future__ import annotations
-from collections import defaultdict
 from chem_nlp.tokenizers import tokenize, entity
+from chem_nlp.tokenizers import vocab
 from chem_nlp.dc import Settings
 import nltk
+import itertools
 import logging
 
 
@@ -20,7 +21,7 @@ class ChemDoc:
     def __init__(self, text: str, settings: Settings):
         self.text = text
         self.settings = settings
-        self.vocab = self.load_vocab()
+        self.vocab = self.load_vocabs()
         self.sentenizer = settings.sentenziser
         self.sentences = self.sentenize()
 
@@ -35,22 +36,17 @@ class ChemDoc:
 
         return sentences
 
-    def load_vocab(self) -> dict:
+    def load_vocabs(self):
 
-        vocabs = defaultdict(list)
+        all_words = []
         for vocab in self.settings.token_merge_vocabs:
-            vocab.to_lower = self.settings.ignore_case
-            vocabs[vocab.name] += vocab.load()
+            if self.settings.ignore_case:
+                vocab.to_lower = True
 
-        return vocabs
+            data = vocab.load()
+            all_words.extend(data)
 
-    def vocab_to_list(self) -> list:
-
-        vocabs = []
-        for values in self.vocab.values():
-            vocabs += values
-
-        return list(set(vocabs))
+        return list(set(all_words))
 
 
 class ChemSentence:
@@ -88,8 +84,8 @@ class ChemSentence:
 
         # Merges tokens into bigger grams
         for merged_char in tokenize.merge_by_word_sqequence(
+            vocab=(self.doc.vocab),
             char_tokens=(self.initial_tokens),
-            vocab=self.doc.vocab_to_list(),
             max_match=self.doc.settings.targets_per_sentence,
             max_sequence=self.doc.settings.max_sequence_length,
             min_n_gram_len=self.doc.settings.min_vocab_word_length,
@@ -106,8 +102,12 @@ class ChemSentence:
         return tokens
 
     def entity_recognition(self):
-        entity.by_token_pattern(
-            tokens=self.tokens, entity_patterns=self.doc.settings.entity_patterns
+
+        entity.by_word_pattern(
+            tokens=self.tokens,
+            patterns=self.doc.settings.entity_patterns,
+            settings=self.doc.settings,
+            max_match=self.doc.settings.targets_per_sentence,
         )
 
 

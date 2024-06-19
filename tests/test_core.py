@@ -1,33 +1,12 @@
 import pytest
-from chem_nlp.tokenizers import entity
-from chem_nlp.core import ChemDoc, Settings
+from typing import Callable, Tuple
+from chem_nlp.settings import settings
+from chem_nlp.sentenzisers import sentenzise
+from chem_nlp.core import ChemDoc
 import os
 import logging
-from chem_nlp.tokenizers import vocab, tokenize
-import re
 
 logging.basicConfig(level=logging.DEBUG)
-
-settings = Settings(
-    ignore_case=True,
-    token_merge_vocabs=[
-        vocab.V_COMPOUND,
-        vocab.V_COMPOUND_SYNONYM,
-        vocab.V_FOOD,
-        vocab.V_UNIT_WEIGHT,
-    ],
-    token_split_patterns=[tokenize.TM_UNITS],
-    entity_patterns=[
-        entity.EM_COMPOUND_SYN,
-        entity.EM_COMPOUND,
-        entity.EM_FOOD,
-        entity.EM_QUALIFIER,
-        entity.EM_MODIFIER,
-        entity.EM_WEIGHT_VALUE,
-        entity.EM_WEIGHT_UNIT,
-    ],
-    targets_per_sentence=2,
-)
 
 
 def load_test_data(filename):
@@ -36,16 +15,20 @@ def load_test_data(filename):
         return file.read()
 
 
-@pytest.mark.parametrize("filename,expected", [("text_sample_1.txt", ())])
-def test_tokens(filename: str, expected):
+@pytest.mark.parametrize(
+    "filename, sentenziser, expected", [("text_sample_2.txt", sentenzise.standard, ())]
+)
+def test_tokens(filename: str, sentenziser: Callable, expected: Tuple[int, int, int]):
 
     text = load_test_data(filename)
+    settings.sentenziser = sentenziser
     doc = ChemDoc(text=text, settings=settings)
 
     compounds = []
     weight_units = []
     weight_values = []
     for sent in doc.sentences:
+        logging.error(f"############ {sent.sent}")
         for token in sent.tokens:
             logging.debug(f"{token.char}, {token.entity}, {token.pos}")
             # if token.entity in ["COMPOUND", "COMPOUND_SYN"]:
